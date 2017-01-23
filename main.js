@@ -70,8 +70,6 @@ var GameState = {
         this.load.image('right', 'assets/images/right.png');
         this.load.image('crack', 'assets/images/crack.png');
         this.load.image('lava', 'assets/images/lava.png');
-        this.load.image('normal', 'assets/images/normal.png');
-        this.load.image('hover', 'assets/images/hover.png');
         this.load.spritesheet('sound-button', 'assets/images/sound-button.png', 40, 40);
         this.load.spritesheet('restart', 'assets/images/restart.png', 160, 84);
         this.load.spritesheet("tiles", "assets/images/Tile.png", gameOptions.tileSize, gameOptions.tileSize);
