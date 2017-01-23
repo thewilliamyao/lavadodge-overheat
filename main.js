@@ -77,13 +77,20 @@ var GameState = {
     },
     create: function () {
         this.background = this.game.add.sprite(0, 0, 'background');
-        this.music = game.add.audio('sing', 1, true);
+        this.music = game.add.audio('sing', 0.7, true);
         this.music.play();
         this.move = game.add.audio('move');
         this.gameOverMusic = game.add.audio('game-over');
         this.createGame();
         this.addMenu();
+        this.scale.scaleMode = Phaser.ScaleManager.SHOW_ALL;
+        game.input.onDown.add(this.goLarge, this);
     },
+
+    goLarge: function() {
+        game.scale.startFullScreen();
+    },
+
     update: function () {
         if (gameOn) {
             this.checkOlaf();
