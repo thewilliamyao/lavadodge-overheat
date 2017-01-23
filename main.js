@@ -85,17 +85,17 @@ var GameState = {
         this.createGame();
         this.addMenu();
 
-        // if (game.device.desktop === false)
-        // {
-        //     console.log("im here");
-        //     game.scale.scaleMode = Phaser.ScaleManager.RESIZE;
-        //     game.scale.pageAlignHorizontally = true;
-        //     game.scale.pageAlignVertically = true;
-        // } else {
-        //     game.scale.scaleMode = Phaser.ScaleManager.SHOW_ALL;
-        // }
+        if (game.device.desktop === false)
+        {
+            console.log("im here");
+            game.scale.scaleMode = Phaser.ScaleManager.EXACT_FIT;
+            game.scale.pageAlignHorizontally = true;
+            game.scale.pageAlignVertically = true;
+        } else {
+            game.scale.scaleMode = Phaser.ScaleManager.SHOW_ALL;
+        }
 
-        //game.input.onDown.add(this.goLarge, this);
+        game.input.onDown.add(this.goLarge, this);
     },
 
     goLarge: function() {
