@@ -86,7 +86,16 @@ var GameState = {
         this.gameOverMusic = game.add.audio('game-over');
         this.createGame();
         this.addMenu();
-        this.scale.scaleMode = Phaser.ScaleManager.SHOW_ALL;
+
+        if (game.device.desktop === false)
+        {
+            game.scale.scaleMode = Phaser.ScaleManager.RESIZE;
+            game.scale.pageAlignHorizontally = true;
+            game.scale.pageAlignVertically = true;
+        } else {
+            game.scale.scaleMode = Phaser.ScaleManager.SHOW_ALL;
+        }
+
         game.input.onDown.add(this.goLarge, this);
     },
 
