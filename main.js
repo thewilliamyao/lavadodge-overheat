@@ -52,6 +52,8 @@ var timer;
 var score = 0;
 var scoreText;
 
+var loadingText;
+
 var gameOn = false;
 
 var GameState = {
@@ -74,6 +76,7 @@ var GameState = {
         this.load.spritesheet('restart', 'assets/images/restart.png', 160, 84);
         this.load.spritesheet("tiles", "assets/images/Tile.png", gameOptions.tileSize, gameOptions.tileSize);
         this.load.image("over-menu", "assets/images/game-over-menu.png");
+        loadingText = game.add.text(game.world.centerX - 100, game.world.centerY - 300, 'Loading...', {font:"bold 50px", color: "black", align: "center"});
     },
     create: function () {
         this.background = this.game.add.sprite(0, 0, 'background');
