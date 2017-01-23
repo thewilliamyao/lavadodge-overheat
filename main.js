@@ -128,13 +128,13 @@ var GameState = {
     },
 
     addPlayButtons: function () {
-        this.up = this.game.add.button(game.world.centerX, game.world.centerY + 100, 'up');
+        this.up = this.game.add.button(game.world.centerX, game.world.centerY + 70, 'up');
         this.up.anchor.setTo(0.5);
-        this.down = this.game.add.button(game.world.centerX, game.world.centerY + 220, 'down');
+        this.down = this.game.add.button(game.world.centerX, game.world.centerY + 190, 'down');
         this.down.anchor.setTo(0.5);
-        this.left = this.game.add.button(game.world.centerX - 80, game.world.centerY + 160, 'left');
+        this.left = this.game.add.button(game.world.centerX - 80, game.world.centerY + 130, 'left');
         this.left.anchor.setTo(0.5);
-        this.right = this.game.add.button(game.world.centerX + 80, game.world.centerY + 160, 'right');
+        this.right = this.game.add.button(game.world.centerX + 80, game.world.centerY + 130, 'right');
         this.right.anchor.setTo(0.5);
     },
 
