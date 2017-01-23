@@ -128,13 +128,13 @@ var GameState = {
     },
 
     addPlayButtons: function () {
-        this.up = this.game.add.sprite(game.world.centerX, game.world.centerY + 100, 'up');
+        this.up = this.game.add.button(game.world.centerX, game.world.centerY + 100, 'up');
         this.up.anchor.setTo(0.5);
-        this.down = this.game.add.sprite(game.world.centerX, game.world.centerY + 200, 'down');
+        this.down = this.game.add.button(game.world.centerX, game.world.centerY + 220, 'down');
         this.down.anchor.setTo(0.5);
-        this.left = this.game.add.sprite(game.world.centerX - 50, game.world.centerY + 150, 'left');
+        this.left = this.game.add.button(game.world.centerX - 80, game.world.centerY + 160, 'left');
         this.left.anchor.setTo(0.5);
-        this.right = this.game.add.sprite(game.world.centerX + 50, game.world.centerY + 150, 'right');
+        this.right = this.game.add.button(game.world.centerX + 80, game.world.centerY + 160, 'right');
         this.right.anchor.setTo(0.5);
     },
 
@@ -146,68 +146,16 @@ var GameState = {
         leftKey = game.input.keyboard.addKey(Phaser.Keyboard.LEFT);
         rightKey = game.input.keyboard.addKey(Phaser.Keyboard.RIGHT);
 
+        upKey.onDown.add(this.addUpKey);
+        downKey.onDown.add(this.addDownKey);
+        leftKey.onDown.add(this.addLeftKey);
+        rightKey.onDown.add(this.addRightKey);
 
-        upKey.onDown.add(function() {
-            if (this.olaf.y > gameOptions.tileSize / 2 && moving == false) {
-                console.log(olaf.x + " " + olaf.y);
-                olafTween = game.add.tween(olaf).to({
-                    y: olaf.y - 50
-                }, 40, Phaser.Easing.Linear.None);
-                olafTween.start();
-                olafTween.onStart.add(function() {
-                    moving = true;
-                });
-                olafTween.onComplete.add(function() {
-                    moving = false;
-                });
-            }
-        });
-        downKey.onDown.add(function() {
-            if (this.olaf.y < gameOptions.tileSize / 2 * 10  && moving == false) {
-                console.log(olaf.x + " " + olaf.y);
-                olafTween = game.add.tween(olaf).to({
-                    y: olaf.y + 50
-                }, 40, Phaser.Easing.Linear.None);
-                olafTween.start();
-                olafTween.onStart.add(function() {
-                    moving = true;
-                });
-                olafTween.onComplete.add(function() {
-                    moving = false;
-                });
-            }
+        this.up.onInputDown.add(this.addUpKey);
+        this.down.onInputDown.add(this.addDownKey);
+        this.left.onInputDown.add(this.addLeftKey);
+        this.right.onInputDown.add(this.addRightKey);
 
-        });
-        leftKey.onDown.add(function() {
-            if (this.olaf.x > gameOptions.tileSize / 2  && moving == false) {
-                console.log(olaf.x + " " + olaf.y);
-                olafTween = game.add.tween(olaf).to({
-                    x: olaf.x - 50
-                }, 40, Phaser.Easing.Linear.None);
-                olafTween.start();
-                olafTween.onStart.add(function() {
-                    moving = true;
-                });
-                olafTween.onComplete.add(function() {
-                    moving = false;
-                });
-            }
-        });
-        rightKey.onDown.add(function() {
-            if (this.olaf.x < gameOptions.tileSize / 2 * 10  && moving == false) {
-                console.log(olaf.x + " " + olaf.y);
-                olafTween = game.add.tween(olaf).to({
-                    x: olaf.x + 50
-                }, 40, Phaser.Easing.Linear.None);
-                olafTween.start();
-                olafTween.onStart.add(function() {
-                    moving = true;
-                });
-                olafTween.onComplete.add(function() {
-                    moving = false;
-                });
-            }
-        });
 
         olafTween.onStart.add(function() {
             moving = true;
@@ -219,10 +167,71 @@ var GameState = {
         // key4 = game.input.keyboard.addKey(Phaser.Keyboard.ONE);
     },
 
+    addUpKey: function() {
+        if (this.olaf.y > gameOptions.tileSize / 2 && moving == false) {
+            olafTween = game.add.tween(olaf).to({
+                y: olaf.y - 50
+            }, 40, Phaser.Easing.Linear.None);
+            olafTween.start();
+            olafTween.onStart.add(function() {
+                moving = true;
+            });
+            olafTween.onComplete.add(function() {
+                moving = false;
+            });
+        }
+    },
+
+    addDownKey: function() {
+        if (this.olaf.y < gameOptions.tileSize / 2 * 10  && moving == false) {
+            olafTween = game.add.tween(olaf).to({
+                y: olaf.y + 50
+            }, 40, Phaser.Easing.Linear.None);
+            olafTween.start();
+            olafTween.onStart.add(function() {
+                moving = true;
+            });
+            olafTween.onComplete.add(function() {
+                moving = false;
+            });
+        }
+
+    },
+
+    addLeftKey: function() {
+        if (this.olaf.x > gameOptions.tileSize / 2  && moving == false) {
+            olafTween = game.add.tween(olaf).to({
+                x: olaf.x - 50
+            }, 40, Phaser.Easing.Linear.None);
+            olafTween.start();
+            olafTween.onStart.add(function() {
+                moving = true;
+            });
+            olafTween.onComplete.add(function() {
+                moving = false;
+            });
+        }
+    },
+
+    addRightKey: function() {
+        if (this.olaf.x < gameOptions.tileSize / 2 * 10  && moving == false) {
+            olafTween = game.add.tween(olaf).to({
+                x: olaf.x + 50
+            }, 40, Phaser.Easing.Linear.None);
+            olafTween.start();
+            olafTween.onStart.add(function() {
+                moving = true;
+            });
+            olafTween.onComplete.add(function() {
+                moving = false;
+            });
+        }
+    },
+
     addEnemy: function() {
         game.time.events.loop(Phaser.Timer.SECOND, this.addCrack, this);
 
-        game.time.events.loop(Phaser.Timer.SECOND * 1, function() {
+        game.time.events.loop(Phaser.Timer.SECOND * 2, function() {
             game.time.events.loop(Phaser.Timer.SECOND, this.addCrack, this);
         }, this);
     },
@@ -241,7 +250,7 @@ var GameState = {
             this.lavaGroup.add(lava);
             levels[0].level[lavaY - 1][lavaX - 1] = 1;
             crack.destroy();
-            game.time.events.add(Phaser.Timer.SECOND * 0.8, function() {
+            game.time.events.add(Phaser.Timer.SECOND * 0.6, function() {
                 lava.destroy();
                 levels[0].level[lavaY - 1][lavaX - 1] = 0;
             }, this);
