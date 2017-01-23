@@ -39,6 +39,10 @@ var olafTween;
 
 var moving = false;
 
+var timer;
+var score = 0;
+var scoreText;
+
 var GameState = {
     preload: function () {
         this.load.image('background', 'assets/images/Island.png');
@@ -77,9 +81,15 @@ var GameState = {
 
     },
 
+    render: function() {
+
+    },
+
     createGame: function () {
         this.tilesArray = [];
         this.tileGroup = game.add.group();
+        this.crackGroup = game.add.group();
+        this.lavaGroup = game.add.group();
 
         //this.tileGroup.x = (game.width - gameOptions.tileSize * gameOptions.fieldSize.cols) / 2;
         //this.tileGroup.y = (game.height -  gameOptions.tileSize * gameOptions.fieldSize.rows) / 2;
@@ -102,7 +112,7 @@ var GameState = {
         this.addEnemy();
 
         //Create Score Counter
-        //this.addScore();
+        this.addScore();
     },
 
     addTile: function (row, col, val) {
@@ -212,7 +222,7 @@ var GameState = {
     addEnemy: function() {
         game.time.events.loop(Phaser.Timer.SECOND, this.addCrack, this);
 
-        game.time.events.loop(Phaser.Timer.SECOND * 3, function() {
+        game.time.events.loop(Phaser.Timer.SECOND * 1, function() {
             game.time.events.loop(Phaser.Timer.SECOND, this.addCrack, this);
         }, this);
     },
@@ -220,29 +230,23 @@ var GameState = {
     addCrack: function() {
         var lavaX = Math.floor((Math.random() * 6) + 1);
         var lavaY = Math.floor((Math.random() * 6) + 1);
-        console.log(lavaX + " " + lavaY);
 
         var crack = this.game.add.sprite(lavaX * gameOptions.tileSize, lavaY * gameOptions.tileSize, 'crack');
         crack.anchor.setTo(0.5);
+        this.crackGroup.add(crack);
 
         game.time.events.add(Phaser.Timer.SECOND, function() {
             var lava = this.game.add.sprite(lavaX * gameOptions.tileSize, lavaY * gameOptions.tileSize, 'lava');
             lava.anchor.setTo(0.5);
+            this.lavaGroup.add(lava);
             levels[0].level[lavaY - 1][lavaX - 1] = 1;
             crack.destroy();
-            game.time.events.add(Phaser.Timer.SECOND * 1.5, function() {
+            game.time.events.add(Phaser.Timer.SECOND * 0.8, function() {
                 lava.destroy();
                 levels[0].level[lavaY - 1][lavaX - 1] = 0;
             }, this);
         }, this);
 
-        //crack.destroy();
-        //game.time.events.loop(Phaser.Timer.SECOND, this.addLava(lavaX, lavaY, crack), this);
-    },
-
-    addLava: function(x, y, c) {
-        var lava = this.game.add.sprite(x * gameOptions.tileSize, y * gameOptions.tileSize, 'lava');
-        lava.anchor.setTo(0.5);
     },
 
     checkOlaf: function() {
@@ -266,8 +270,36 @@ var GameState = {
             console.log("───────────█████████████──────────");
             console.log(" ──────────────────────────────────");
             console.log(" ──────────────────────────────────");
-            game.destroy();
+            this.gameOver();
         }
+    },
+
+    addScore: function() {
+        scoreText = game.add.text(25, 0, 'Score: ' + score, { font:"bold 20px", color: "black"});
+
+        timer = game.time.create(false);
+        timer.loop(1000, this.updateScore, this);
+        timer.start();
+    },
+
+    updateScore: function() {
+        score++;
+        scoreText.text = 'Score: ' + score;
+    },
+
+    gameOver: function() {
+        olaf.destroy();
+        game.time.events.stop();
+        timer.stop();
+
+        scoreText.setStyle({font:"bold 50px", color: "black", align: "center"});
+        scoreText.x = game.world.centerX - 100;
+        scoreText.y = game.world.centerY - 120;
+
+        this.tileGroup.destroy();
+        this.crackGroup.destroy();
+        this.lavaGroup.destroy();
+        game.gamePaused()
     }
 };
 
