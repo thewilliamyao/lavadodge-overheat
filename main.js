@@ -14,6 +14,15 @@ var gameOptions = {
     }
 }
 
+var defaultLevel = [
+    [0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0]
+];
+
 var levels = [
     {
         level:[
@@ -43,8 +52,13 @@ var timer;
 var score = 0;
 var scoreText;
 
+var gameOn = false;
+
 var GameState = {
     preload: function () {
+        this.load.audio('sing', 'assets/sounds/sing.mp3');
+        this.load.audio('move', 'assets/sounds/move.mp3');
+        this.load.audio('game-over', 'assets/sounds/game-over.mp3');
         this.load.image('background', 'assets/images/Island.png');
         this.load.image('olaf', 'assets/images/olaf.png');
         this.load.image('tile', 'assets/images/Tile.png');
@@ -54,31 +68,26 @@ var GameState = {
         this.load.image('right', 'assets/images/right.png');
         this.load.image('crack', 'assets/images/crack.png');
         this.load.image('lava', 'assets/images/lava.png');
+        this.load.image('normal', 'assets/images/normal.png');
+        this.load.image('hover', 'assets/images/hover.png');
+        this.load.spritesheet('sound-button', 'assets/images/sound-button.png', 40, 40);
+        this.load.spritesheet('restart', 'assets/images/restart.png', 160, 84);
         this.load.spritesheet("tiles", "assets/images/Tile.png", gameOptions.tileSize, gameOptions.tileSize);
-        this.load.audio('sing', 'assets/sounds/sing.mp3');
+        this.load.image("over-menu", "assets/images/game-over-menu.png");
     },
     create: function () {
         this.background = this.game.add.sprite(0, 0, 'background');
-        this.music = game.add.audio('sing');
+        this.music = game.add.audio('sing', 1, true);
         this.music.play();
+        this.move = game.add.audio('move');
+        this.gameOverMusic = game.add.audio('game-over');
         this.createGame();
+        this.addMenu();
     },
     update: function () {
-        this.checkOlaf();
-        // if (upKey.isDown) {
-        //     this.olaf.y = this.olaf.y - 25;
-        // }
-        // else if (downKey.isDown) {
-        //     this.olaf.y = this.olaf.y + 25;
-        // }
-        //
-        // if (leftKey.isDown) {
-        //     this.olaf.x--;
-        // }
-        // else if (rightKey.isDown) {
-        //     this.olaf.x++;
-        // }
-
+        if (gameOn) {
+            this.checkOlaf();
+        }
     },
 
     render: function() {
@@ -90,6 +99,8 @@ var GameState = {
         this.tileGroup = game.add.group();
         this.crackGroup = game.add.group();
         this.lavaGroup = game.add.group();
+        this.buttonGroup = game.add.group();
+        this.menuGroup = game.add.group();
 
         //this.tileGroup.x = (game.width - gameOptions.tileSize * gameOptions.fieldSize.cols) / 2;
         //this.tileGroup.y = (game.height -  gameOptions.tileSize * gameOptions.fieldSize.rows) / 2;
@@ -108,11 +119,46 @@ var GameState = {
         this.addPlayButtons();
         this.addKeyboard();
 
+        this.resumeGame();
+    },
+
+    resumeGame: function() {
+        this.music.resume();
+        this.gameOverMusic.stop();
+        this.resetLevel();
+
+        olaf.visible = true;
+        olaf.x = gameOptions.tileSize / 2;
+        olaf.y = gameOptions.tileSize / 2;
+
+        this.tileGroup.visible = true;
+        this.buttonGroup.visible = true;
+
+        game.time.events.start();
+
         //Create Enemy
         this.addEnemy();
 
+        score = 0;
         //Create Score Counter
         this.addScore();
+
+        gameOn = true;
+    },
+
+    resetLevel: function() {
+        levels[0].level = [
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0]
+        ];
+
+        // for (var i = 0; i < gameOptions.rows; i++) {
+        //     levels[0].level.push(new Array.apply(null, Array(gameOptions.cols)).map(Number.prototype.valueOf,0));
+        // }
     },
 
     addTile: function (row, col, val) {
@@ -130,12 +176,24 @@ var GameState = {
     addPlayButtons: function () {
         this.up = this.game.add.button(game.world.centerX, game.world.centerY + 70, 'up');
         this.up.anchor.setTo(0.5);
+        this.up.scale.setTo(1.3);
+        this.buttonGroup.add(this.up);
         this.down = this.game.add.button(game.world.centerX, game.world.centerY + 190, 'down');
         this.down.anchor.setTo(0.5);
+        this.down.scale.setTo(1.3);
+        this.buttonGroup.add(this.down);
         this.left = this.game.add.button(game.world.centerX - 80, game.world.centerY + 130, 'left');
         this.left.anchor.setTo(0.5);
+        this.left.scale.setTo(1.3);
+        this.buttonGroup.add(this.left);
         this.right = this.game.add.button(game.world.centerX + 80, game.world.centerY + 130, 'right');
         this.right.anchor.setTo(0.5);
+        this.right.scale.setTo(1.3);
+        this.buttonGroup.add(this.right);
+
+        this.soundButton = this.game.add.button(game.world.centerX + 125, game.world.centerY + 25, 'sound-button', this.toggleMusic, this, 1, 1, 0);
+        this.soundButton.anchor.setTo(0.5)
+        this.buttonGroup.add(this.soundButton);
     },
 
     addKeyboard: function () {
@@ -146,16 +204,16 @@ var GameState = {
         leftKey = game.input.keyboard.addKey(Phaser.Keyboard.LEFT);
         rightKey = game.input.keyboard.addKey(Phaser.Keyboard.RIGHT);
 
-        upKey.onDown.add(this.addUpKey);
-        downKey.onDown.add(this.addDownKey);
-        leftKey.onDown.add(this.addLeftKey);
-        rightKey.onDown.add(this.addRightKey);
+        upKey.onDown.add(this.addUpKey, this);
+        downKey.onDown.add(this.addDownKey, this);
+        leftKey.onDown.add(this.addLeftKey, this);
+        rightKey.onDown.add(this.addRightKey, this);
 
-        this.up.onInputDown.add(this.addUpKey);
-        this.down.onInputDown.add(this.addDownKey);
-        this.left.onInputDown.add(this.addLeftKey);
-        this.right.onInputDown.add(this.addRightKey);
 
+        this.up.onInputDown.add(this.addUpKey, this);
+        this.down.onInputDown.add(this.addDownKey, this);
+        this.left.onInputDown.add(this.addLeftKey, this);
+        this.right.onInputDown.add(this.addRightKey, this);
 
         olafTween.onStart.add(function() {
             moving = true;
@@ -168,7 +226,8 @@ var GameState = {
     },
 
     addUpKey: function() {
-        if (this.olaf.y > gameOptions.tileSize / 2 && moving == false) {
+        this.move.play();
+        if (olaf.y > gameOptions.tileSize / 2 && moving == false) {
             olafTween = game.add.tween(olaf).to({
                 y: olaf.y - 50
             }, 40, Phaser.Easing.Linear.None);
@@ -183,7 +242,8 @@ var GameState = {
     },
 
     addDownKey: function() {
-        if (this.olaf.y < gameOptions.tileSize / 2 * 10  && moving == false) {
+        this.move.play();
+        if (olaf.y < gameOptions.tileSize / 2 * 10  && moving == false) {
             olafTween = game.add.tween(olaf).to({
                 y: olaf.y + 50
             }, 40, Phaser.Easing.Linear.None);
@@ -199,7 +259,8 @@ var GameState = {
     },
 
     addLeftKey: function() {
-        if (this.olaf.x > gameOptions.tileSize / 2  && moving == false) {
+        this.move.play();
+        if (olaf.x > gameOptions.tileSize / 2  && moving == false) {
             olafTween = game.add.tween(olaf).to({
                 x: olaf.x - 50
             }, 40, Phaser.Easing.Linear.None);
@@ -214,7 +275,8 @@ var GameState = {
     },
 
     addRightKey: function() {
-        if (this.olaf.x < gameOptions.tileSize / 2 * 10  && moving == false) {
+        this.move.play();
+        if (olaf.x < gameOptions.tileSize / 2 * 10  && moving == false) {
             olafTween = game.add.tween(olaf).to({
                 x: olaf.x + 50
             }, 40, Phaser.Easing.Linear.None);
@@ -240,6 +302,7 @@ var GameState = {
         var lavaX = Math.floor((Math.random() * 6) + 1);
         var lavaY = Math.floor((Math.random() * 6) + 1);
 
+        console.log('adding enemy');
         var crack = this.game.add.sprite(lavaX * gameOptions.tileSize, lavaY * gameOptions.tileSize, 'crack');
         crack.anchor.setTo(0.5);
         this.crackGroup.add(crack);
@@ -296,19 +359,58 @@ var GameState = {
         scoreText.text = 'Score: ' + score;
     },
 
+    toggleMusic: function() {
+        if (!this.music.mute) {
+            this.music.mute = true;
+            this.soundButton.setFrames(0, 0, 1);
+        } else {
+            this.music.mute = false;
+            this.soundButton.setFrames(1, 1, 0);
+        }
+    },
+
     gameOver: function() {
-        olaf.destroy();
+        this.music.pause();
+        this.gameOverMusic.play();
+
+        gameOn = false;
+
+        olaf.visible = false;
         game.time.events.stop();
         timer.stop();
 
         scoreText.setStyle({font:"bold 50px", color: "black", align: "center"});
         scoreText.x = game.world.centerX - 100;
-        scoreText.y = game.world.centerY - 120;
+        scoreText.y = game.world.centerY - 300;
 
-        this.tileGroup.destroy();
-        this.crackGroup.destroy();
-        this.lavaGroup.destroy();
-        game.gamePaused()
+        this.tileGroup.visible = false;
+        this.crackGroup.removeAll(true);
+        this.lavaGroup.removeAll(true);
+        this.buttonGroup.visible = false;
+
+        this.menuGroup.visible = true;
+
+        //this.restartButton.onInputDown.add(this.restartGame, this);
+    },
+
+    addMenu: function() {
+        this.gameOverMenu = game.add.sprite(this.game.world.centerX, this.game.world.centerY - 50, 'over-menu');
+        this.gameOverMenu.anchor.setTo(0.5);
+        this.restartButton = game.add.button(this.game.world.centerX - 5, this.game.world.centerY - 100, 'restart', this.restartGame, this, 0, 3, 2);
+        this.restartButton.anchor.setTo(0.5);
+        this.menuGroup.add(this.gameOverMenu);
+        this.menuGroup.add(this.restartButton);
+        this.menuGroup.visible = false;
+    },
+
+    restartGame: function() {
+        this.menuGroup.visible = false;
+        scoreText.destroy();
+        this.resumeGame();
+    },
+
+    dummy: function() {
+        console.log('dummied');
     }
 };
 
