@@ -73,12 +73,13 @@ var GameState = {
         this.load.spritesheet('sound-button', 'assets/images/sound-button.png', 40, 40);
         this.load.spritesheet('restart', 'assets/images/restart.png', 160, 84);
         this.load.spritesheet("tiles", "assets/images/Tile.png", gameOptions.tileSize, gameOptions.tileSize);
+        this.load.spritesheet("cracks", 'assets/images/cracks-stylesheet.png', 50, 50, 10);
         this.load.image("over-menu", "assets/images/game-over-menu.png");
         loadingText = game.add.text(game.world.centerX - 100, game.world.centerY - 300, 'Loading...', {font:"bold 50px", color: "black", align: "center"});
     },
     create: function () {
         this.background = this.game.add.sprite(0, 0, 'background');
-        this.music = game.add.audio('sing', 0.7, true);
+        this.music = game.add.audio('sing', 0.8, true);
         this.music.play();
         this.move = game.add.audio('move');
         this.gameOverMusic = game.add.audio('game-over');
@@ -321,9 +322,14 @@ var GameState = {
         var lavaY = Math.floor((Math.random() * 6) + 1);
 
         console.log('adding enemy');
-        var crack = this.game.add.sprite(lavaX * gameOptions.tileSize, lavaY * gameOptions.tileSize, 'crack');
+        var crackBorder = this.game.add.sprite(lavaX * gameOptions.tileSize, lavaY * gameOptions.tileSize, 'crack');
+        crackBorder.anchor.setTo(0.5);
+        var crack = this.game.add.sprite(lavaX * gameOptions.tileSize, lavaY * gameOptions.tileSize, 'cracks', 1);
         crack.anchor.setTo(0.5);
+        var crackAnim = crack.animations.add('cracking');
+        crackAnim.play(10, false, true);
         this.crackGroup.add(crack);
+        this.crackGroup.add(crackBorder);
 
         game.time.events.add(Phaser.Timer.SECOND, function() {
             var lava = this.game.add.sprite(lavaX * gameOptions.tileSize, lavaY * gameOptions.tileSize, 'lava');
@@ -331,6 +337,7 @@ var GameState = {
             this.lavaGroup.add(lava);
             levels[0].level[lavaY - 1][lavaX - 1] = 1;
             crack.destroy();
+            crackBorder.destroy();
             game.time.events.add(Phaser.Timer.SECOND * 0.6, function() {
                 lava.destroy();
                 levels[0].level[lavaY - 1][lavaX - 1] = 0;
@@ -343,23 +350,7 @@ var GameState = {
         var checkX = Math.floor((olaf.x - gameOptions.tileSize / 2) / gameOptions.tileSize);
         var checkY = Math.floor((olaf.y - gameOptions.tileSize / 2) / gameOptions.tileSize);
         if (levels[0].level[checkY][checkX] == 1){
-            console.log("─────────▄▄───────────────────▄▄──");
-            console.log("──────────▀█───────────────────▀█─");
-            console.log("──────────▄█───────────────────▄█─");
-            console.log("──█████████▀───────────█████████▀─");
-            console.log("───▄██████▄─────────────▄██████▄──");
-            console.log("─▄██▀────▀██▄─────────▄██▀────▀██▄");
-            console.log("─██────────██─────────██────────██");
-            console.log("─██───██───██─────────██───██───██");
-            console.log("─██────────██─────────██────────██");
-            console.log("──██▄────▄██───────────██▄────▄██─");
-            console.log("───▀██████▀─────────────▀██████▀──");
-            console.log("──────────────────────────────────");
-            console.log("──────────────────────────────────");
-            console.log("──────────────────────────────────");
-            console.log("───────────█████████████──────────");
-            console.log(" ──────────────────────────────────");
-            console.log(" ──────────────────────────────────");
+            console.log("GameOver triggerd");
             this.gameOver();
         }
     },
@@ -435,20 +426,3 @@ var GameState = {
 
 game.state.add('GameState', GameState);
 game.state.start('GameState');
-
-
-function hideAddressBar()
-{
-    if(!window.location.hash)
-    {
-        if(document.height < window.outerHeight)
-        {
-            document.body.style.height = (window.outerHeight + 50) + 'px';
-        }
-
-        setTimeout( function(){ window.scrollTo(0, 1); }, 50 );
-    }
-}
-
-window.addEventListener("load", function(){ if(!window.pageYOffset){ hideAddressBar(); } } );
-window.addEventListener("orientationchange", hideAddressBar );
