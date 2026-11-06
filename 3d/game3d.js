@@ -295,7 +295,7 @@ function tryMove(dx, dy) {
   if (!inB(nc, nr)) { p.land = 0.12; p.bump = [dx, dy]; p.bumpT = 0.12; return; }
   p.mv = { fc: p.c, fr: p.r, dx, dy, t: 0 };
   p.c = nc; p.r = nr; p.idleT = 0;
-  p.face = dx * 1.0; // turn ~57° toward left/right hops; up/down keep facing the camera
+  p.face = Math.atan2(dx, dy); // face the hop direction (0 = toward the camera)
   Audio.play('move', 0.55, 0.95 + Math.random() * 0.1);
 }
 
@@ -659,8 +659,9 @@ const Olaf = {
         } else if (p.land > 0) { const e = p.land / 0.14; sx = 1 + 0.22 * e; sy = 1 - 0.2 * e; }
         else { sy = 1 + 0.035 * Math.sin(time * 5.5); sx = 1 - 0.02 * Math.sin(time * 5.5); }
         // turn partway toward left/right hops (face stays visible), drift back when idle
-        const target = p.idleT > 0.7 ? 0 : p.face;
-        this.yaw.rotation.y += (target - this.yaw.rotation.y) * Math.min(1, dt * (p.mv ? 25 : 6));
+        // turn to face the way he's moving (shortest way round) and keep facing it
+        let d = p.face - this.yaw.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d));
+        this.yaw.rotation.y += d * Math.min(1, dt * 28);
         if (G.heat > 70) heatGlow = (G.heat - 70) / 30 * (0.6 + 0.4 * Math.sin(time * 10));
       }
     } else { // title: hop in place on the middle of the board
