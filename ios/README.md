@@ -23,6 +23,13 @@ A remake of the 2017 LavaDodge-Overheat game. It's a home-screen web app for iPh
 
 The balance numbers are in the `BAL` object at the top of `game.js`.
 
+## 2 players
+Tap **2 PLAYERS** on the title screen:
+- **Same phone:** lay the phone flat between you. Player 2's arrows and heat bar face them from the far side. Swipes work too: Olaf moves the way your finger moves. Last Olaf standing wins, and wins are tallied across rematches. On a keyboard, P1 uses the arrow keys and P2 uses WASD.
+- **Online:** one player taps **HOST ONLINE** and reads out the 4-letter room code; the other taps **JOIN ONLINE** and types it in. The host's phone runs the game and the other phone sends its moves, with a little extra lava grace to make up for network delay. The connection uses WebRTC through the free PeerJS broker, so both phones need internet access, and some strict networks (certain cellular or work Wi-Fi) may fail to connect.
+
+The game rules, menus and multiplayer code are shared by the 2D and 3D versions, in [`../shared/`](../shared/).
+
 ## Assets
 - **Olaf, tiles, lava, background:** redrawn at Retina resolution with Meshy, using the original sprites as references.
 - **New art (burnt Olaf, overheating Olaf, ice cube, app icon):** made with Meshy from the original Olaf.

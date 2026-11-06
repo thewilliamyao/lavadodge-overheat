@@ -1,7 +1,8 @@
 // Offline cache for LavaDodge 3D.
-const CACHE = 'lavadodge3d-v2';
+const CACHE = 'lavadodge3d-v3';
 const FILES = [
   './', 'index.html', 'game3d.js', 'manifest.webmanifest',
+  '../shared/core.js', '../shared/net.js', '../shared/ui.js', '../shared/peerjs.min.js',
   'lib/three.module.min.js', 'lib/loaders/GLTFLoader.js', 'lib/utils/BufferGeometryUtils.js',
   'assets/olaf.glb',
   'assets/img/olaf_burnt.png', 'assets/img/tile.png', 'assets/img/lava.png', 'assets/img/crack.png', 'assets/img/bg.jpg',

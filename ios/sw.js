@@ -1,7 +1,8 @@
 // Offline cache: the game works with no connection once it has been opened once.
-const CACHE = 'lavadodge-v4';
+const CACHE = 'lavadodge-v5';
 const FILES = [
   './', 'index.html', 'game.js', 'manifest.webmanifest',
+  '../shared/core.js', '../shared/net.js', '../shared/ui.js', '../shared/peerjs.min.js',
   'assets/img/olaf.png', 'assets/img/olaf_burnt.png', 'assets/img/olaf_sweat.png',
   'assets/img/ice.png', 'assets/img/tile.png', 'assets/img/lava.png', 'assets/img/crack.png', 'assets/img/bg.jpg',
   'assets/img/btn_up.png', 'assets/img/btn_down.png', 'assets/img/btn_left.png', 'assets/img/btn_right.png',

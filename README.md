@@ -13,3 +13,5 @@ Play it on iPhone: https://thewilliamyao.github.io/lavadodge-overheat/ios/ (open
 
 ## 3D version (2026)
 Play the 3D version: https://thewilliamyao.github.io/lavadodge-overheat/3d/ (Safari, then Share > Add to Home Screen). Source and details are in [`3d/`](3d/).
+
+Both versions support 2 players, on the same phone or online with a room code.
