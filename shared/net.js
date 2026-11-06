@@ -9,6 +9,26 @@
   const PREFIX = 'lavadodge-v1-';
   const useBC = /[?&]net=bc\b/.test(location.search);
 
+  // Relay fallback: a small Cloudflare Worker (see turn-worker/) hands out short-lived TURN
+  // credentials, so a match can be relayed when the two devices can't connect directly.
+  const TURN_URL = LD.turnUrl || '';
+  let icePromise = null, iceAt = 0;
+  function getIceServers() {
+    const base = PEER_OPTS.config.iceServers;
+    if (!TURN_URL) return Promise.resolve(base);
+    if (icePromise && performance.now() - iceAt < 60 * 60 * 1000) return icePromise; // reuse for an hour
+    iceAt = performance.now();
+    const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const timer = setTimeout(() => ctl && ctl.abort(), 4000);
+    icePromise = fetch(TURN_URL, { signal: ctl && ctl.signal, cache: 'no-store' })
+      .then(r => r.ok ? r.json() : Promise.reject(new Error('turn ' + r.status)))
+      .then(d => base.concat(d.iceServers || []))
+      .catch(() => { icePromise = null; return base; })
+      .finally(() => clearTimeout(timer));
+    return icePromise;
+  }
+  const peerOpts = ice => Object.assign({}, PEER_OPTS, { config: { iceServers: ice } });
+
   // Watch a PeerJS connection's WebRTC link; call onFail if the two devices can't reach each other.
   function watchIce(conn, onFail, ms) {
     const t0 = performance.now();
@@ -72,8 +92,8 @@
           c.on('open', () => this._attach(c));
           return;
         }
-        loadPeer().then(Peer => {
-          const peer = new Peer(PREFIX + this.code, PEER_OPTS); this.peer = peer;
+        Promise.all([loadPeer(), getIceServers()]).then(([Peer, ice]) => {
+          const peer = new Peer(PREFIX + this.code, peerOpts(ice)); this.peer = peer;
           peer.on('open', () => { this.status = 'waiting'; this.cb.onCode && this.cb.onCode(this.code); });
           peer.on('connection', conn => {
             if (this.conn) { conn.on('open', () => { conn.send({ ty: 'full' }); setTimeout(() => conn.close(), 300); }); return; }
@@ -103,8 +123,8 @@
         this._joinTimer = setTimeout(() => { if (!this.conn) this._fail({ type: 'peer-unavailable' }); }, 4000);
         return;
       }
-      loadPeer().then(Peer => {
-        const peer = new Peer(PEER_OPTS); this.peer = peer;
+      Promise.all([loadPeer(), getIceServers()]).then(([Peer, ice]) => {
+        const peer = new Peer(peerOpts(ice)); this.peer = peer;
         peer.on('open', () => {
           const conn = peer.connect(PREFIX + this.code, { reliable: true, serialization: 'json' });
           conn.on('open', () => this._attach(conn));
