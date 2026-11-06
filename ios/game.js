@@ -85,7 +85,7 @@
 
   // ---------- Assets ----------
   const IMG = {};
-  const imgList = ['olaf', 'olaf_burnt', 'olaf_sweat', 'ice', 'tile', 'lava', 'btn_up', 'btn_down', 'btn_left', 'btn_right'];
+  const imgList = ['olaf', 'olaf_burnt', 'olaf_sweat', 'ice', 'tile', 'lava', 'crack', 'btn_up', 'btn_down', 'btn_left', 'btn_right'];
   let loaded = 0;
   const total = imgList.length + 1;
   function loadImg(name, src) {
@@ -689,6 +689,24 @@
     drawShadow(pp.x, pp.y + T * 0.38, T, pp.hop);
     drawOlaf(pp.x, pp.y + T * 0.42 - pp.hop, size, img, sx, sy, rot);
   }
+  // Fiery border around cracking tiles (the original game's crack.png look).
+  // Drawn above Olaf so a crack under him is always visible.
+  function drawCrackBorders() {
+    const T = L.tile, t = G.t;
+    for (const h of G.hazards) {
+      if (phase(h, t) !== 'crack') continue;
+      const k = (t - h.t0) / h.warn, late = k > 0.65;
+      const pulse = late ? 0.5 + 0.5 * Math.sin(time * 30) : 0;
+      const grow = 1 + (late ? 0.06 * pulse : 0);
+      const s = T * grow, x = L.boardX + h.c * T - (s - T) / 2, y = L.boardY + h.r * T - (s - T) / 2;
+      ctx.save();
+      ctx.globalAlpha = Math.min(1, 0.55 + k * 0.6);
+      ctx.drawImage(IMG.crack, x, y, s, s);
+      if (late) { ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.35 * pulse; ctx.drawImage(IMG.crack, x, y, s, s); }
+      ctx.restore();
+    }
+  }
+
   function drawShadow(x, y, T, hop) {
     const k = 1 - Math.min(0.5, hop / T);
     ctx.beginPath(); ctx.ellipse(x, y, T * 0.3 * k, T * 0.09 * k, 0, 0, Math.PI * 2);
@@ -808,7 +826,7 @@
     drawBackground();
     ctx.save();
     if (shake > 0) ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
-    drawBoard(); drawPlayer(); drawFx();
+    drawBoard(); drawPlayer(); drawCrackBorders(); drawFx();
     ctx.restore();
     drawPad(); drawHud(); drawVignette(); drawBanner();
     if (flash > 0) { ctx.fillStyle = 'rgba(255,200,120,' + flash * 0.35 + ')'; ctx.fillRect(0, 0, W, H); }
