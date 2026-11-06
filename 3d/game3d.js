@@ -10,12 +10,14 @@ LD.keyBest = 'ld_best3d'; LD.keyDaily = 'ld_daily3d_';
 
 // ---------- 2D images for the HUD / menus ----------
 const IMG = LD.IMG = {};
-let loaded = 0; const total = 10;
+let loaded = 0; const total = 11;
 function loadImg(name, src) { return new Promise(res => { const i = new Image(); i.onload = i.onerror = () => { loaded++; res(i); }; i.src = src; IMG[name] = i; }); }
-const imgReady = Promise.all(['olaf_burnt', 'btn_up', 'btn_down', 'btn_left', 'btn_right', 'tile', 'lava', 'crack'].map(n => loadImg(n, 'assets/img/' + n + '.png')));
+const imgReady = Promise.all(['olaf_burnt', 'olaf_sweat', 'ice', 'btn_up', 'btn_down', 'btn_left', 'btn_right', 'tile', 'lava', 'crack'].map(n => loadImg(n, 'assets/img/' + n + '.png')));
 
 const glCanvas = document.getElementById('three');
-let L = {}, R, S3, cam, sun;
+let L = {}, R, S3, cam, sun, hemi;
+const skyCanvas = document.getElementById('sky'), skyCtx = skyCanvas.getContext('2d');
+let skyK = -1;
 const time = () => LD.ui.time;
 const cellX = c => c - (COLS - 1) / 2, cellZ = r => r - (ROWS - 1) / 2;
 const texLoader = new THREE.TextureLoader();
@@ -29,7 +31,7 @@ function init3D() {
   R.shadowMap.enabled = true; R.shadowMap.type = THREE.PCFSoftShadowMap;
   S3 = new THREE.Scene();
   cam = new THREE.PerspectiveCamera(38, 1, 0.1, 100);
-  S3.add(new THREE.HemisphereLight(0xdff4ff, 0x6b4a2a, 1.25));
+  hemi = new THREE.HemisphereLight(0xdff4ff, 0x6b4a2a, 1.25); S3.add(hemi);
   sun = new THREE.DirectionalLight(0xfff1d6, 2.2);
   sun.position.set(-4, 10, 5); sun.castShadow = true; sun.shadow.mapSize.set(1024, 1024);
   Object.assign(sun.shadow.camera, { left: -5, right: 5, top: 5, bottom: -5, near: 1, far: 30 });
@@ -75,7 +77,7 @@ const Board = {
     const sideTex = tex('assets/img/tile.png'); sideTex.repeat.set(1, 0.3);
     const lavaMap = tex('assets/img/lava.png'); lavaMap.wrapS = lavaMap.wrapT = THREE.RepeatWrapping; this.lavaMap = lavaMap;
     const geo = new THREE.BoxGeometry(0.96, 0.5, 0.96); geo.translate(0, -0.25, 0);
-    const sideMat = new THREE.MeshStandardMaterial({ map: sideTex, color: 0x8a7a6a, roughness: 0.95 });
+    const sideMat = this.sideMat = new THREE.MeshStandardMaterial({ map: sideTex, color: 0x8a7a6a, roughness: 0.95 });
     const bottomMat = new THREE.MeshStandardMaterial({ color: 0x3d2a1a, roughness: 1 });
     const flat = () => { const g = new THREE.PlaneGeometry(0.96, 0.96); g.rotateX(-Math.PI / 2); return g; };
     const lavaGeo = flat(), crackGeo = flat();
@@ -93,9 +95,9 @@ const Board = {
     }
     const base = new THREE.Mesh(new THREE.CylinderGeometry(4.6, 3.2, 1.6, 8, 1), new THREE.MeshStandardMaterial({ color: 0x6b4a2e, roughness: 1, flatShading: true }));
     base.rotation.y = Math.PI / 8; base.position.y = -1.32; base.receiveShadow = true; S3.add(base);
-    const rim = new THREE.Mesh(new THREE.BoxGeometry(6.3, 0.5, 6.3), new THREE.MeshStandardMaterial({ color: 0x3d2a1a, roughness: 1 }));
+    const rim = new THREE.Mesh(new THREE.BoxGeometry(6.3, 0.5, 6.3), this.rimMat = new THREE.MeshStandardMaterial({ color: 0x3d2a1a, roughness: 1, emissive: 0xff4a10, emissiveIntensity: 0 }));
     rim.position.y = -0.31; rim.receiveShadow = true; S3.add(rim);
-    const grass = new THREE.Mesh(new THREE.CylinderGeometry(4.65, 4.65, 0.18, 8), new THREE.MeshStandardMaterial({ color: 0x5aa83c, roughness: 1, flatShading: true }));
+    const grass = new THREE.Mesh(new THREE.CylinderGeometry(4.65, 4.65, 0.18, 8), this.grassMat = new THREE.MeshStandardMaterial({ color: 0x5aa83c, roughness: 1, flatShading: true }));
     grass.rotation.y = Math.PI / 8; grass.position.y = -0.55; grass.receiveShadow = true; S3.add(grass);
     for (let i = 0; i < 4; i++) { const l = new THREE.PointLight(0xff6a1a, 0, 2.6, 1.6); l.position.y = 0.4; S3.add(l); this.lavaLights.push(l); }
   },
@@ -303,6 +305,26 @@ LD.on('ice', (p, c, r) => FX.emit(cellX(c), 0.35, cellZ(r), 14, 0xaee8ff, 1.6, 2
 LD.on('death', (p, cause) => { const [x, z] = at(p); FX.emit(x, 0.6, z, 18, cause === 'heat' ? 0xff7840 : 0x555555, 0.7, 1.8, 2.2, 1.0, -0.5); });
 LD.on('newgame', () => { FX.clear(); Board.reset(); });
 
+// ---------- the arena heats up: scorched tiles, glowing gaps, ash island, red sky ----------
+const C = (h) => new THREE.Color(h);
+const HEAT = {
+  top: [C(0xffffff), C(0xc8907a)], side: [C(0x8a7a6a), C(0x5a3a2a)], grass: [C(0x5aa83c), C(0x3b2a22)],
+  sky: [C(0xdff4ff), C(0xffb48a)], sun: [C(0xfff1d6), C(0xffa070)],
+};
+const _c = new THREE.Color();
+function applyHeat(k) {
+  const mix = (pair, out) => out.copy(pair[0]).lerp(pair[1], k);
+  for (const t of Board.tiles) mix(HEAT.top, t.topMat.color);
+  mix(HEAT.side, Board.sideMat.color); mix(HEAT.grass, Board.grassMat.color);
+  Board.rimMat.emissiveIntensity = k * 1.3 * (0.85 + 0.15 * Math.sin(time() * 3));
+  mix(HEAT.sky, hemi.color); mix(HEAT.sun, sun.color);
+  // sky gradient lives on its own canvas behind the WebGL board; redraw only when it changes
+  if (Math.abs(k - skyK) > 0.004 || skyCanvas.width !== L.W) {
+    skyK = k; skyCanvas.width = L.W; skyCanvas.height = L.H;
+    skyCtx.clearRect(0, 0, L.W, L.H); LD.drawHeatSky(skyCtx, k, L.W, L.H);
+  }
+}
+
 // ---------- renderer hooks for the shared UI ----------
 const _v = new THREE.Vector3();
 LD.renderer = {
@@ -318,7 +340,7 @@ LD.renderer = {
   draw(ctx, scene, dt) {
     ctx.clearRect(0, 0, L.W, L.H);
     if (!olafs.length) return;
-    const G = LD.G, inGame = !!G && !['title', 'menu2p', 'hosting', 'joining', 'loading'].includes(scene);
+    const G = LD.G, inGame = !!G && !['title', 'menu2p', 'hosting', 'joining', 'loading', 'howto'].includes(scene);
     FX.update(dt);
     Board.update(inGame ? G : null); IceView.update(inGame ? G : null);
     olafs.forEach((o, i) => {
@@ -326,6 +348,7 @@ LD.renderer = {
       o.root.visible = o.shadow.visible = p !== undefined;
       if (p !== undefined) poseOlaf(o, p, dt);
     });
+    applyHeat(inGame ? LD.heatK() : 0);
     placeCamera(inGame);
     R.render(S3, cam);
   },

@@ -80,12 +80,22 @@
   function drawBoard(ctx) {
     const G = LD.G, T = L.tile, bx = L.boardX, by = L.boardY, time = LD.ui.time, t = G.t;
     rrect(ctx, bx - 8, by - 8, L.board + 16, L.board + 16, 16); ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.fill();
-    rrect(ctx, bx - 5, by - 5, L.board + 10, L.board + 10, 13); ctx.fillStyle = '#3d2a1a'; ctx.fill();
+    const hk = LD.heatK();
+    // the gaps between tiles start to glow like lava as the heat rises
+    ctx.save();
+    if (hk > 0) { ctx.shadowColor = 'rgba(255,90,20,' + hk + ')'; ctx.shadowBlur = 24 * hk; }
+    rrect(ctx, bx - 5, by - 5, L.board + 10, L.board + 10, 13);
+    ctx.fillStyle = 'rgb(' + (61 + 194 * hk * (0.85 + 0.15 * Math.sin(time * 3)) | 0) + ',' + (42 + 48 * hk | 0) + ',' + (26 - 6 * hk | 0) + ')'; ctx.fill();
+    ctx.restore();
     const map = {};
     for (const h of G.hazards) { const ph = LD.phase(h, t); if (ph !== 'wait' && ph !== 'done') map[h.c + h.r * COLS] = { h, ph }; }
     for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
       const x = bx + c * T, y = by + r * T, m = map[c + r * COLS];
-      if (!m) { ctx.drawImage(IMG.tile, x, y, T, T); continue; }
+      if (!m) {
+        ctx.drawImage(IMG.tile, x, y, T, T);
+        if (hk > 0) { ctx.fillStyle = 'rgba(55,20,8,' + 0.42 * hk + ')'; ctx.fillRect(x, y, T, T); } // scorched
+        continue;
+      }
       const h = m.h, a = t - h.t0;
       if (m.ph === 'crack') {
         const k = a / h.warn, late = k > 0.7, j = late ? (Math.random() - 0.5) * T * 0.05 * (k - 0.7) / 0.3 * 2 : 0;
@@ -203,7 +213,8 @@
     draw(ctx, scene, dt) {
       drawBackground(ctx);
       const G = LD.G;
-      if (!G || scene === 'title' || scene === 'menu2p' || scene === 'hosting' || scene === 'joining' || scene === 'loading') {
+      if (G && !['title', 'menu2p', 'hosting', 'joining', 'loading', 'howto'].includes(scene)) LD.drawHeatSky(ctx, LD.heatK(), L.W, L.H);
+      if (!G || ['title', 'menu2p', 'hosting', 'joining', 'loading', 'howto'].includes(scene)) {
         if (scene === 'title' && IMG.tile.naturalWidth) drawTitleArt(ctx);
         return;
       }

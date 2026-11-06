@@ -11,7 +11,8 @@
     spawnStart: 1.0, spawnMin: 0.3, spawnStep: 0.05,
     warnStart: 1.15, warnMin: 0.55, warnStep: 0.035,
     lavaTime: 0.75, coolTime: 0.35, moveTime: 0.11,
-    heatBase: 3.0, heatPerLevel: 0.18, heatAdjLava: 5, iceCool: 38,
+    heatBase: 3.0, heatPerLevel: 0.18, heatAdjLava: 0,     // (was 5) standing next to lava no longer heats you up
+    iceCool: 38,
     iceEvery: [3.6, 5.4], iceLife: 7, iceMax: 2, iceMax2P: 3,
     ptsPerSec: 10, icePts: 25, closePts: 5,
     lavaGrace: 0.08,       // you can still escape this long after a tile erupts
@@ -29,7 +30,7 @@
   // ---------- events ----------
   const handlers = {};
   LD.on = (name, fn) => { (handlers[name] = handlers[name] || []).push(fn); };
-  function emit(name, a, b, c) { (handlers[name] || []).forEach(fn => fn(a, b, c)); }
+  function emit(name, ...args) { (handlers[name] || []).forEach(fn => fn(...args)); }
   LD.emit = emit;
 
   // ---------- RNG ----------
@@ -83,6 +84,8 @@
     return 'done';
   }
   LD.phase = phase;
+  // How 'hot' the arena looks: 0 at the start, 1 at heat level 12, rising smoothly in between.
+  LD.heatK = function () { return G ? Math.max(0, Math.min(1, G.t / (BAL.levelEvery * 11))) : 0; };
   function lavaAt(list, c, r, t, margin) {
     for (const h of list) {
       if (h.c !== c || h.r !== r) continue;

@@ -60,6 +60,7 @@
       W, H, local, board, tile: board / 6, boardX, boardY, boardCx: boardX + board / 2, boardCy: boardY + board / 2,
       btn, pad, hud, safe: s,
       sound: { x: W - s.right - 30, y: Math.max(s.top, 10) + 26, r: 19 },
+      help: { x: s.left + 30, y: Math.max(s.top, 10) + 26, r: 19 },
       pause: local ? { x: W - s.right - 30, y: hud.y, r: 17 } : { x: W - s.right - 74, y: Math.max(s.top, 10) + 26, r: 19 },
     };
     LD.L = L;
@@ -251,6 +252,7 @@
     ctx.fillStyle = '#000'; ctx.strokeStyle = '#000'; ctx.lineWidth = 2.5; ctx.lineCap = 'round';
     const s = b.r / 19;
     if (kind === 'pause') { ctx.fillRect(b.x - 6 * s, b.y - 7 * s, 4 * s, 14 * s); ctx.fillRect(b.x + 2 * s, b.y - 7 * s, 4 * s, 14 * s); }
+    else if (kind === 'help') { text('?', b.x, b.y + 1, 24 * s, '#000', { stroke: false }); }
     else {
       ctx.beginPath(); ctx.moveTo(b.x - 9 * s, b.y - 3.5 * s); ctx.lineTo(b.x - 5 * s, b.y - 3.5 * s); ctx.lineTo(b.x + 1 * s, b.y - 8 * s);
       ctx.lineTo(b.x + 1 * s, b.y + 8 * s); ctx.lineTo(b.x - 5 * s, b.y + 3.5 * s); ctx.lineTo(b.x - 9 * s, b.y + 3.5 * s); ctx.closePath(); ctx.fill();
@@ -367,10 +369,32 @@
     if (L.local) { one(L.boardCy + L.board * 0.22); flipped(() => one(L.boardCy + L.board * 0.22)); }
     else one(L.boardCy - L.board * 0.05);
   }
-  function heatTint() {
-    const G = LD.G; const a = Math.min(0.35, (G.level - 1) * 0.03);
-    if (a > 0) { ctx.fillStyle = 'rgba(255,90,20,' + a + ')'; ctx.fillRect(0, 0, W, H); }
+  // Heat look, shared by both renderers: the sky goes sunset orange, then smoky volcanic red.
+  LD.drawHeatSky = function (g, k, w, h) {
+    if (k <= 0) return;
+    const gr = g.createLinearGradient(0, 0, 0, h);
+    gr.addColorStop(0, 'rgba(70,10,30,' + 0.75 * k + ')');
+    gr.addColorStop(0.35, 'rgba(230,80,30,' + 0.45 * k + ')');
+    gr.addColorStop(0.7, 'rgba(255,120,30,' + 0.3 * k + ')');
+    gr.addColorStop(1, 'rgba(90,15,0,' + 0.65 * k + ')');
+    g.fillStyle = gr; g.fillRect(0, 0, w, h);
+  };
+  // Embers drifting up the screen, more of them the hotter it gets.
+  const embers = [];
+  function drawEmbers(dt) {
+    const k = LD.heatK();
+    if (k > 0.05 && embers.length < 70 && Math.random() < dt * 30 * k) {
+      embers.push({ x: Math.random() * W, y: H + 10, vy: -(40 + Math.random() * 70), ph: Math.random() * 6, s: 1.5 + Math.random() * 2.5, life: 0, max: 3 + Math.random() * 3 });
+    }
+    for (let i = embers.length - 1; i >= 0; i--) {
+      const e = embers[i]; e.life += dt; e.y += e.vy * dt; e.x += Math.sin(UIst.time * 2 + e.ph) * 18 * dt;
+      if (e.life > e.max || e.y < -10) { embers.splice(i, 1); continue; }
+      const a = Math.min(1, e.life * 2) * (1 - e.life / e.max);
+      ctx.beginPath(); ctx.arc(e.x, e.y, e.s, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255,' + (150 + (e.ph * 15 | 0)) + ',60,' + a + ')'; ctx.fill();
+    }
   }
+  LD.on('newgame', () => { embers.length = 0; });
 
   // ---------- screens ----------
   const UI = {};
@@ -395,7 +419,37 @@
     const best = store.get(LD.bestKey(false), 0), dbest = store.get(LD.bestKey(true), 0);
     text('BEST ' + best + (dbest ? '   ·   TODAY ' + dbest : ''), cx, by + gap * 2 + 52, 16, '#fff', { lw: 5 });
     text('Swipe or tap arrows · dodge the cracks · grab ice to stay cool', cx, by + gap * 2 + 80, 12, '#fff', { lw: 4, weight: '700' });
-    iconBtn(L.sound, 'sound');
+    iconBtn(L.sound, 'sound'); iconBtn(L.help, 'help');
+  }
+  // First-time instructions (shown before the first game; the ? on the title shows it again).
+  function drawHowTo() {
+    ctx.fillStyle = 'rgba(0,0,0,0.45)'; ctx.fillRect(0, 0, W, H);
+    const pw = Math.min(340, W - 28), ph = 470, px = (W - pw) / 2, py = Math.max(L.safe.top + 6, (H - ph) / 2);
+    const k = Math.min(1, (UIst.howT || 0) / 0.25), e = 1 - Math.pow(1 - k, 3);
+    ctx.save(); ctx.globalAlpha = k; ctx.translate(0, (1 - e) * 40);
+    panel(px, py, pw, ph);
+    text('HOW TO PLAY', W / 2, py + 40, 30, '#fff', { lw: 7 });
+    const I = LD.IMG || {}, ix = px + 46, tx = px + 88, t = UIst.time;
+    const row = (y, drawIcon, l1, l2) => {
+      drawIcon(ix, y);
+      text(l1, tx, y - 10, 16, '#0b3a4a', { align: 'left', stroke: false });
+      text(l2, tx, y + 11, 12.5, '#155e75', { align: 'left', stroke: false, weight: '700' });
+    };
+    const img = (im, x, y, s) => { if (im && (im.naturalWidth || im.width)) ctx.drawImage(im, x - s / 2, y - s / 2, s, s); };
+    row(py + 104, (x, y) => {
+      img(I.tile, x, y, 54);
+      ctx.globalAlpha = k * (0.6 + 0.4 * Math.sin(t * 8)); img(I.crack, x, y, 54); ctx.globalAlpha = k;
+    }, 'Cracked tiles turn to LAVA', 'Hop off before they erupt!');
+    row(py + 180, (x, y) => {
+      img(I.olaf_sweat || I.olaf_burnt, x, y - 6, 50);
+      heatBar(x - 26, y + 20, 52, 9, 60 + 35 * (0.5 + 0.5 * Math.sin(t * 2)), false);
+    }, 'Your HEAT keeps rising', 'Faster at higher heat levels. 100% = overheated!');
+    row(py + 256, (x, y) => img(I.ice, x, y + Math.sin(t * 4) * 3, 46), 'Grab ICE CUBES to cool down', 'Grab several in a row for bonus points');
+    row(py + 332, (x, y) => {
+      ctx.save(); ctx.imageSmoothingEnabled = false; img(I.btn_up, x, y - 12, 30); img(I.btn_left, x - 16, y + 12, 30); img(I.btn_right, x + 16, y + 12, 30); ctx.restore();
+    }, 'Swipe or tap the arrows', 'Each move hops Olaf one tile');
+    pill(btn('gotit', W / 2, py + ph - 48, pw - 90, 56), 'GOT IT!', ...BTN.green, pressedUI === 'gotit');
+    ctx.restore();
   }
   function drawMenu2p() {
     ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.fillRect(0, 0, W, H);
@@ -451,7 +505,7 @@
 
   function drawPlayUI() {
     const G = LD.G;
-    heatTint(); drawFloaters(); drawTags();
+    drawEmbers(UIst.dt || 0); drawFloaters(); drawTags();
     if (L.local) {
       drawPad(pressedPads[0]); drawHudSide(0);
       flipped(() => { drawPad(pressedPads[1]); drawHudSide(1); });
@@ -580,6 +634,7 @@
       touches.set(e.pointerId, { sx: x, sy: y, who: me }); return;
     }
     if (sc === 'title' && inCircle(x, y, L.sound)) { Audio.toggle(); return; }
+    if (sc === 'title' && inCircle(x, y, L.help)) { showHowTo(null); return; }
     pressedUI = hitUI(x, y);
   }, { passive: false });
   canvas.addEventListener('pointermove', e => {
@@ -604,6 +659,7 @@
   function uiActive(k) {
     const sc = UIst.scene, base = k.replace(/_f$/, '');
     if (sc === 'title') return ['play', 'daily', 'two'].includes(k);
+    if (sc === 'howto') return k === 'gotit' && UIst.howT > 0.3;
     if (sc === 'menu2p') return ['local', 'host', 'join', 'back'].includes(k);
     if (sc === 'hosting') return k === 'cancel';
     if (sc === 'joining') return k === 'dojoin' || k === 'back';
@@ -612,7 +668,19 @@
     if (sc === 'over') return UIst.overT > 0.4 && (LD.G.two ? ['rematch', 'menu'].includes(base) : ['restart', 'menu'].includes(k));
     return false;
   }
+  function showHowTo(next) { UIst.howFrom = UIst.scene; UIst.howNext = next; UIst.howT = 0; UIst.scene = 'howto'; }
+  function firstTime(next) { if (store.get('ld_seen_howto', false)) next(); else showHowTo(next); }
+
+  // Auto-update: a new version finished downloading. Reload right away if we're on a menu,
+  // otherwise wait until the player is back on the title screen (never mid-run).
+  let reloadPending = false;
+  const safeToReload = () => ['loading', 'title', 'menu2p', 'howto'].includes(UIst.scene);
+  function doReload() { try { sessionStorage.setItem('ld_updated', '1'); } catch (e) {} location.reload(); }
+  LD.requestReload = function () { if (safeToReload()) doReload(); else reloadPending = true; };
+  try { if (sessionStorage.getItem('ld_updated')) { sessionStorage.removeItem('ld_updated'); setTimeout(() => toast('Updated to the latest version!'), 600); } } catch (e) {}
+
   function toTitle() {
+    if (reloadPending) return doReload();
     for (const k in UI) delete UI[k];
     hideCodeInput(); Audio.stopMusic(); LD.G = null; UIst.scene = 'title'; layout();
     if (LD.renderer.reset) LD.renderer.reset();
@@ -621,12 +689,13 @@
     const base = k.replace(/_f$/, ''), G = LD.G;
     for (const key in UI) delete UI[key];
     switch (base) {
-      case 'play': startGame('solo'); break;
-      case 'daily': startGame('solo', { daily: true }); break;
+      case 'play': firstTime(() => startGame('solo')); break;
+      case 'daily': firstTime(() => startGame('solo', { daily: true })); break;
+      case 'gotit': { store.set('ld_seen_howto', true); const next = UIst.howNext; UIst.howNext = null; UIst.scene = UIst.howFrom || 'title'; if (next) next(); break; }
       case 'two': UIst.scene = 'menu2p'; break;
-      case 'local': LD.tally = [0, 0]; startGame('local'); break;
-      case 'host': hostOnline(); break;
-      case 'join': UIst.scene = 'joining'; UIst.msg = ''; UIst.joinBusy = false; showCodeInput(); break;
+      case 'local': firstTime(() => { LD.tally = [0, 0]; startGame('local'); }); break;
+      case 'host': firstTime(hostOnline); break;
+      case 'join': firstTime(() => { UIst.scene = 'joining'; UIst.msg = ''; UIst.joinBusy = false; showCodeInput(); }); break;
       case 'dojoin': if (!UIst.joinBusy) tryJoin(); break;
       case 'back': LD.Net.close(); hideCodeInput(); UIst.scene = UIst.scene === 'joining' ? 'menu2p' : 'title'; break;
       case 'cancel': LD.Net.close(); UIst.scene = 'menu2p'; break;
@@ -675,7 +744,7 @@
   let last = performance.now(), snapT = 0;
   function frame(now) {
     const dt = Math.min(0.05, (now - last) / 1000); last = now;
-    UIst.time += dt;
+    UIst.time += dt; UIst.dt = dt;
     for (let i = UIst.floaters.length - 1; i >= 0; i--) { const f = UIst.floaters[i]; f.life += dt; if (f.life > 0.9) UIst.floaters.splice(i, 1); }
     UIst.shake = Math.max(0, UIst.shake - dt * 30); UIst.flash = Math.max(0, UIst.flash - dt * 2.5);
     if (UIst.banner) { UIst.banner.t += dt; if (UIst.banner.t > (UIst.banner.short ? 0.9 : 1.4)) UIst.banner = null; }
@@ -691,6 +760,7 @@
     if (sc === 'loading') drawLoading();
     else if (sc === 'title') drawTitle();
     else if (sc === 'menu2p') drawMenu2p();
+    else if (sc === 'howto') { UIst.howT = (UIst.howT || 0) + dt; drawTitle(); drawHowTo(); }
     else if (sc === 'hosting') drawHosting();
     else if (sc === 'joining') drawJoining();
     else if (sc === 'netlost') { if (LD.G) drawPlayUI(); drawNetLost(); }

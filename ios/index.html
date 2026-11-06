@@ -39,8 +39,20 @@
 <script src="../shared/ui.js"></script>
 <script src="game.js"></script>
 <script>
+  // Offline support + automatic updates: check for a new version when the app is opened or
+  // brought back to the foreground; once it's downloaded, reload (only while on a menu).
   if ('serviceWorker' in navigator && location.protocol === 'https:') {
-    window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js'); });
+    window.addEventListener('load', function () {
+      var hadController = !!navigator.serviceWorker.controller;
+      navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(function (reg) {
+        document.addEventListener('visibilitychange', function () { if (!document.hidden) reg.update(); });
+        setInterval(function () { reg.update(); }, 10 * 60 * 1000);
+      });
+      navigator.serviceWorker.addEventListener('controllerchange', function () {
+        if (!hadController) { hadController = true; return; } // first install: already up to date
+        if (window.LD && LD.requestReload) LD.requestReload(); else location.reload();
+      });
+    });
   }
 </script>
 </body>

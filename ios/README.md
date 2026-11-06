@@ -15,7 +15,7 @@ A remake of the 2017 LavaDodge-Overheat game. It's a home-screen web app for iPh
 ## How to play
 - Swipe anywhere, or tap the arrow pad, to hop Olaf one tile.
 - Cracked tiles turn to lava after a short warning. Don't be on them when they erupt.
-- Your **heat meter** always rises, and rises faster next to lava. Grab **ice cubes** to cool down. Grabbing several in a row gives up to 3x points.
+- Your **heat meter** always rises, a little faster at each heat level. Grab **ice cubes** to cool down. Grabbing several in a row gives up to 3x points.
 - A lava tile erupting right next to you gives a +5 **close call** bonus.
 - **Heat level** goes up every 12 s. Waves come faster and get new patterns: lines, plus shapes, blocks, rings around you, sweeps and checkerboards.
 - **Daily Run** gives everyone the same seeded waves each day, with its own best score.

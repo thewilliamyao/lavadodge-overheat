@@ -1,5 +1,5 @@
 // Offline cache: the game works with no connection once it has been opened once.
-const CACHE = 'lavadodge-v5';
+const CACHE = 'lavadodge-v6';
 const FILES = [
   './', 'index.html', 'game.js', 'manifest.webmanifest',
   '../shared/core.js', '../shared/net.js', '../shared/ui.js', '../shared/peerjs.min.js',
@@ -10,7 +10,7 @@ const FILES = [
   'assets/sfx/music.mp3', 'assets/sfx/move.mp3', 'assets/sfx/game-over.mp3'
 ];
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES.map(f => new Request(f, { cache: 'reload' })))).then(() => self.skipWaiting()));
 });
 self.addEventListener('activate', e => {
   e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
