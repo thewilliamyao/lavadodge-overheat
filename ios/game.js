@@ -691,18 +691,28 @@
   }
   // Fiery border around cracking tiles (the original game's crack.png look).
   // Drawn above Olaf so a crack under him is always visible.
-  function drawCrackBorders() {
-    const T = L.tile, t = G.t;
+  // 'under' pass: every border, drawn below Olaf (so he's never behind one mid-hop).
+  // 'over' pass: only the tile Olaf is standing still on, faded in after he lands,
+  // so a crack under his feet stays visible.
+  function drawCrackBorders(pass) {
+    const T = L.tile, t = G.t, p = G.p;
+    let over = 0;
+    if (pass === 'over') {
+      if (scene !== 'play' || p.mv) return;
+      over = 1 - p.land / 0.14;
+      if (over <= 0) return;
+    }
     for (const h of G.hazards) {
       if (phase(h, t) !== 'crack') continue;
+      if (pass === 'over' && (h.c !== p.c || h.r !== p.r)) continue;
       const k = (t - h.t0) / h.warn, late = k > 0.65;
       const pulse = late ? 0.5 + 0.5 * Math.sin(time * 30) : 0;
       const grow = 1 + (late ? 0.06 * pulse : 0);
       const s = T * grow, x = L.boardX + h.c * T - (s - T) / 2, y = L.boardY + h.r * T - (s - T) / 2;
       ctx.save();
-      ctx.globalAlpha = Math.min(1, 0.55 + k * 0.6);
+      ctx.globalAlpha = Math.min(1, 0.55 + k * 0.6) * (pass === 'over' ? over : 1);
       ctx.drawImage(IMG.crack, x, y, s, s);
-      if (late) { ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.35 * pulse; ctx.drawImage(IMG.crack, x, y, s, s); }
+      if (late) { ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.35 * pulse * (pass === 'over' ? over : 1); ctx.drawImage(IMG.crack, x, y, s, s); }
       ctx.restore();
     }
   }
@@ -826,7 +836,7 @@
     drawBackground();
     ctx.save();
     if (shake > 0) ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
-    drawBoard(); drawPlayer(); drawCrackBorders(); drawFx();
+    drawBoard(); drawCrackBorders('under'); drawPlayer(); drawCrackBorders('over'); drawFx();
     ctx.restore();
     drawPad(); drawHud(); drawVignette(); drawBanner();
     if (flash > 0) { ctx.fillStyle = 'rgba(255,200,120,' + flash * 0.35 + ')'; ctx.fillRect(0, 0, W, H); }
