@@ -9,6 +9,16 @@
   const PREFIX = 'lavadodge-v1-';
   const useBC = /[?&]net=bc\b/.test(location.search);
 
+  // Watch a PeerJS connection's WebRTC link; call onFail if the two devices can't reach each other.
+  function watchIce(conn, onFail, ms) {
+    const t0 = performance.now();
+    const iv = setInterval(() => {
+      const pc = conn.peerConnection, st = pc && (pc.iceConnectionState || pc.connectionState);
+      if (conn.open) { clearInterval(iv); return; }
+      if (st === 'failed' || performance.now() - t0 > ms) { clearInterval(iv); onFail(st || 'timeout'); }
+    }, 250);
+    return iv;
+  }
   function randomCode() { let s = ''; for (let i = 0; i < 4; i++) s += LETTERS[Math.floor(Math.random() * LETTERS.length)]; return s; }
 
   let peerLib = null;
@@ -26,7 +36,7 @@
   }
   const PEER_OPTS = {
     debug: 1,
-    config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }, { urls: 'stun:global.stun.twilio.com:3478' }] },
+    config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun.cloudflare.com:3478' }, { urls: 'stun:stun1.l.google.com:19302' }, { urls: 'stun:global.stun.twilio.com:3478' }] },
   };
 
   // BroadcastChannel stand-in with the same tiny surface as a PeerJS DataConnection.
@@ -67,7 +77,12 @@
           peer.on('open', () => { this.status = 'waiting'; this.cb.onCode && this.cb.onCode(this.code); });
           peer.on('connection', conn => {
             if (this.conn) { conn.on('open', () => { conn.send({ ty: 'full' }); setTimeout(() => conn.close(), 300); }); return; }
+            this.cb.onStatus && this.cb.onStatus('Friend found! Linking devices…');
             conn.on('open', () => this._attach(conn));
+            watchIce(conn, () => {
+              try { conn.close(); } catch (e) {}
+              this.cb.onStatus && this.cb.onStatus('Couldn\u2019t link to your friend\u2019s device', true);
+            }, 20000);
           });
           peer.on('error', err => {
             if (err.type === 'unavailable-id' && attempt < 4) { peer.destroy(); tryCode(attempt + 1); return; }
@@ -93,7 +108,9 @@
         peer.on('open', () => {
           const conn = peer.connect(PREFIX + this.code, { reliable: true, serialization: 'json' });
           conn.on('open', () => this._attach(conn));
-          this._joinTimer = setTimeout(() => { if (!this.conn) this._fail({ type: 'timeout' }); }, 15000);
+          // the broker answers "peer-unavailable" within a couple of seconds if the code is wrong
+          this._foundTimer = setTimeout(() => { if (!this.conn && this.cb.onStatus) this.cb.onStatus('Room found! Linking devices…'); }, 2500);
+          this._ice = watchIce(conn, () => { if (!this.conn) this._fail({ type: 'ice' }); }, 20000);
         });
         peer.on('error', err => this._fail(err));
       }).catch(e => this._fail(e));
@@ -124,14 +141,14 @@
     },
     _fail(err) {
       const msg = {
-        'peer-unavailable': 'No room with that code', 'timeout': 'Could not connect. Try again', 'full': 'That room is full',
+        'peer-unavailable': 'No room with that code', 'timeout': 'Could not connect. Try again', 'ice': 'Couldn\u2019t link the two devices', 'full': 'That room is full',
         'network': 'No internet connection', 'server-error': 'Connection server is busy. Try again', 'browser-incompatible': 'This browser cannot play online',
       }[err && err.type] || (err && err.message) || 'Connection failed';
       const cb = this.cb; this.close();
       cb.onError && cb.onError(msg);
     },
     close() {
-      clearTimeout(this._joinTimer); clearInterval(this._ping);
+      clearTimeout(this._joinTimer); clearTimeout(this._foundTimer); clearInterval(this._ice); clearInterval(this._ping);
       const conn = this.conn, peer = this.peer, bc = this._bc;
       this.conn = null; this.peer = null; this._bc = null; this.role = null; this.status = ''; this.cb = {};
       try { if (conn) conn.close(); } catch (e) {}

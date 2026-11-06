@@ -162,16 +162,18 @@
   function hostOnline() {
     UIst.scene = 'hosting'; UIst.code = ''; UIst.msg = 'Creating room…'; LD.tally = [0, 0];
     LD.Net.host({
-      onCode: code => { UIst.code = code; UIst.msg = 'Waiting for your friend to join…'; },
+      onCode: code => { UIst.code = code; UIst.msg = 'Waiting for your friend to join…'; UIst.tips = false; },
+      onStatus: (m, bad) => { UIst.msg = m; UIst.tips = !!bad; },
       onOpen: () => { startGame('host'); LD.Net.send({ ty: 'start' }); },
       onMsg: netMsg, onClose: netLost, onError: e => { UIst.scene = 'menu2p'; toast(e); },
     });
   }
   function joinOnline(code) {
-    UIst.msg = 'Connecting…'; UIst.joinBusy = true; LD.tally = [0, 0];
+    UIst.msg = 'Connecting…'; UIst.joinBusy = true; UIst.tips = false; LD.tally = [0, 0];
     LD.Net.join(code, {
       onOpen: () => { UIst.msg = 'Connected! Starting…'; },
-      onMsg: netMsg, onClose: netLost, onError: e => { UIst.joinBusy = false; UIst.msg = e; },
+      onStatus: m => { UIst.msg = m; },
+      onMsg: netMsg, onClose: netLost, onError: e => { UIst.joinBusy = false; UIst.msg = e; UIst.tips = /link/.test(e); },
     });
   }
   function netMsg(m) {
@@ -480,18 +482,28 @@
       const d = Math.floor(UIst.time * 3) % 4; text('.'.repeat(d + 1), W / 2, py + 112, 52, '#1c7ed6', { stroke: false });
     }
     text(UIst.msg, W / 2, py + 186, 14, '#155e75', { stroke: false, weight: '700' });
-    text('Your friend taps 2 PLAYERS → JOIN ONLINE', W / 2, py + 214, 12, '#155e75', { stroke: false, weight: '700' });
-    text('and types this code.', W / 2, py + 232, 12, '#155e75', { stroke: false, weight: '700' });
+    if (UIst.tips) drawNetTips(py + 210);
+    else {
+      text('Your friend taps 2 PLAYERS → JOIN ONLINE', W / 2, py + 214, 12, '#155e75', { stroke: false, weight: '700' });
+      text('and types this code.', W / 2, py + 232, 12, '#155e75', { stroke: false, weight: '700' });
+    }
     pill(btn('cancel', W / 2, py + ph - 40, 160, 44), 'CANCEL', ...BTN.purple, pressedUI === 'cancel');
+  }
+  // Shown when the two devices couldn't reach each other directly.
+  function drawNetTips(y) {
+    [['Brave browser? Turn Shields off for this page', '#c92a2a'], ['Turn off any VPN / iCloud Private Relay', '#155e75'],
+     ['Guest, school or work Wi-Fi often blocks this:', '#155e75'], ['try one device on mobile data or a hotspot', '#155e75']]
+      .forEach(([t, c], i) => text(t, W / 2, y + i * 18, 12, c, { stroke: false, weight: '700' }));
   }
   function drawJoining() {
     ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.fillRect(0, 0, W, H);
-    const pw = Math.min(330, W - 30), ph = 320, px = (W - pw) / 2, py = H / 2 - 140;
+    const pw = Math.min(330, W - 30), ph = UIst.tips ? 400 : 320, px = (W - pw) / 2, py = H / 2 - 140;
     panel(px, py, pw, ph);
     text('JOIN A ROOM', W / 2, py + 40, 26, '#fff', { lw: 6 });
     if (codeInput) codeInput.style.top = (py + 72) + 'px';
     text(UIst.msg || 'Type the 4-letter code', W / 2, py + 170, 14, UIst.msgErr ? '#c92a2a' : '#155e75', { stroke: false, weight: '700' });
-    pill(btn('dojoin', W / 2, py + 222, pw - 80, 50), UIst.joinBusy ? 'CONNECTING…' : 'JOIN', ...BTN.green, pressedUI === 'dojoin');
+    pill(btn('dojoin', W / 2, py + 222, pw - 80, 50), UIst.joinBusy ? 'CONNECTING…' : (UIst.tips ? 'TRY AGAIN' : 'JOIN'), ...BTN.green, pressedUI === 'dojoin');
+    if (UIst.tips) drawNetTips(py + 272);
     pill(btn('back', W / 2, py + ph - 34, 140, 40), 'BACK', ...BTN.purple, pressedUI === 'back');
   }
   function drawNetLost() {
