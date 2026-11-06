@@ -28,6 +28,7 @@
     ptsPerSec: 10,
     icePts: 25,
     closePts: 5,
+    lavaGrace: 0.08,         // you can still escape this long after a tile erupts
   };
 
   // ---------- Canvas / layout ----------
@@ -396,11 +397,10 @@
     return { x: L.boardX + (c + 0.5) * T + bx, y: L.boardY + (r + 0.5) * T + by, hop };
   }
 
-  // Cell used for lava checks: origin for the first half of a hop, destination after.
+  // Cell used for lava checks. The moment a hop starts (when the hop sound plays),
+  // Olaf counts as having left his old tile, so a dodge that sounds safe is safe.
   function playerCell() {
-    const p = G.p;
-    if (p.mv && p.mv.t < BAL.moveTime * 0.5) return [p.mv.fc, p.mv.fr];
-    return [p.c, p.r];
+    return [G.p.c, G.p.r];
   }
 
   // ---------- Effects ----------
@@ -472,7 +472,7 @@
             floatText(x, y - T * 0.3, 'CLOSE! +' + BAL.closePts, '#ffe066', 16);
           }
         }
-        if (h.c === pc && h.r === pr) return die('lava');
+        if (h.c === pc && h.r === pr && G.t - (h.t0 + h.warn) >= BAL.lavaGrace) return die('lava');
         if (Math.abs(h.c - pc) + Math.abs(h.r - pr) === 1) adj++;
       } else if (ph === 'done') G.hazards.splice(i, 1);
     }
