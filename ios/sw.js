@@ -1,5 +1,5 @@
 // Offline cache: the game works with no connection once it has been opened once.
-const CACHE = 'lavadodge-v6';
+const CACHE = 'lavadodge-v7';
 const FILES = [
   './', 'index.html', 'game.js', 'manifest.webmanifest',
   '../shared/core.js', '../shared/net.js', '../shared/ui.js', '../shared/peerjs.min.js',
