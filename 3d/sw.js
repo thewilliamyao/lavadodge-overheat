@@ -1,5 +1,5 @@
 // Offline cache for LavaDodge 3D.
-const CACHE = 'lavadodge3d-v5';
+const CACHE = 'lavadodge3d-v6';
 const FILES = [
   './', 'index.html', 'game3d.js', 'manifest.webmanifest',
   '../shared/core.js', '../shared/net.js', '../shared/ui.js', '../shared/peerjs.min.js',

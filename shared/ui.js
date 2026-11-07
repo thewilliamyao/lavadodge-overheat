@@ -519,8 +519,14 @@
     const G = LD.G;
     drawEmbers(UIst.dt || 0); drawFloaters(); drawTags();
     if (L.local) {
-      drawPad(pressedPads[0]); drawHudSide(0);
-      flipped(() => { drawPad(pressedPads[1]); drawHudSide(1); });
+      const zone = (i) => { // each player's tap area, tinted in their color
+        const y0 = L.boardY + L.board + 8, y1 = L.hud.y - 24;
+        ctx.save(); rrect(10, y0, W - 20, y1 - y0, 18);
+        ctx.fillStyle = i ? 'rgba(199,125,255,0.16)' : 'rgba(77,171,247,0.16)'; ctx.fill();
+        ctx.lineWidth = 2; ctx.strokeStyle = i ? 'rgba(199,125,255,0.5)' : 'rgba(77,171,247,0.5)'; ctx.stroke(); ctx.restore();
+      };
+      zone(0); drawPad(pressedPads[0]); drawHudSide(0);
+      flipped(() => { zone(1); drawPad(pressedPads[1]); drawHudSide(1); });
     } else {
       drawPad(pressedPads[0]); drawHudTop();
     }
@@ -620,10 +626,18 @@
     return null;
   }
   const touches = new Map();
+  // Arrow pad input. A direct hit on a button counts, and so does a tap anywhere in the
+  // player's area between the board and their HUD: the direction from the pad's center
+  // decides the move, so thumbs don't have to land exactly on the small buttons.
   function padHit(x, y) {
     let best = null, bd = 1e9;
     for (const k in L.pad) { const b = L.pad[k], d = Math.hypot(x - b.x, y - b.y); if (d < L.btn * 0.75 && d < bd) { bd = d; best = k; } }
-    return best;
+    if (best) return best;
+    const top = L.boardY + L.board + 6, bottom = L.local ? L.hud.y - 22 : H;
+    if (y < top || y > bottom) return null;
+    const cx = L.pad.up.x, cy = L.pad.left.y, dx = x - cx, dy = y - cy;
+    if (Math.hypot(dx, dy) < L.btn * 0.35) return null; // dead zone in the middle of the pad
+    return Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up');
   }
   function move(i, dx, dy) { LD.tryMove(i, dx, dy); }
 

@@ -209,7 +209,7 @@
   LD.renderer = {
     ready, progress: () => loaded / total,
     layout(l) { L = l; },
-    cellToScreen(c, r, h) { return { x: cx(c), y: cy(r) - h * L.tile }; },
+    cellToScreen(c, r, h) { return { x: cx(c), y: cy(r) - h * L.tile * 0.75 }; }, // 2D sprites are shorter than the 3D model
     draw(ctx, scene, dt) {
       drawBackground(ctx);
       const G = LD.G;
